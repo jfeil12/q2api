@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"/>
+  <title>Amazon Q API - 登录</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <style>
+    :root {
+      --bg:#0a0e1a;
+      --panel:#0f1420;
+      --muted:#8b95a8;
+      --text:#e8f0ff;
+      --accent:#4f8fff;
+      --danger:#ff4757;
+      --ok:#2ed573;
+      --border:#1a2332;
+      --glow:rgba(79,143,255,.15);
+    }
+    * { box-sizing:border-box; }
+    html, body { height:100%; margin:0; }
+    body {
+      padding:0;
+      background:radial-gradient(ellipse at top, #0f1624 0%, #0a0e1a 100%);
+      color:var(--text);
+      font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,PingFang SC,Hiragino Sans GB,Microsoft YaHei,Noto Sans,Arial,sans-serif;
+      line-height:1.6;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .login-container {
+      background:linear-gradient(145deg,rgba(15,20,32,.8),rgba(10,14,26,.9));
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:40px;
+      box-shadow:0 20px 60px rgba(0,0,0,.4),0 0 0 1px rgba(79,143,255,.08),inset 0 1px 0 rgba(255,255,255,.03);
+      backdrop-filter:blur(12px);
+      width:100%;
+      max-width:400px;
+      margin:20px;
+    }
+    h1 {
+      font-size:24px;
+      font-weight:700;
+      letter-spacing:-.02em;
+      margin:0 0 8px;
+      background:linear-gradient(135deg,#4f8fff,#7b9fff);
+      -webkit-background-clip:text;
+      -webkit-text-fill-color:transparent;
+      background-clip:text;
+      text-align:center;
+    }
+    .subtitle {
+      color:var(--muted);
+      text-align:center;
+      margin:0 0 32px;
+      font-size:14px;
+    }
+    .field {
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      margin-bottom:20px;
+    }
+    label {
+      color:var(--muted);
+      font-size:13px;
+      font-weight:500;
+      letter-spacing:.01em;
+    }
+    input {
+      background:rgba(12,16,28,.6);
+      color:var(--text);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:14px 16px;
+      outline:none;
+      transition:all .2s;
+      font-size:14px;
+      box-shadow:inset 0 1px 2px rgba(0,0,0,.2);
+    }
+    input:focus {
+      border-color:var(--accent);
+      box-shadow:0 0 0 3px var(--glow),inset 0 1px 2px rgba(0,0,0,.2);
+      background:rgba(12,16,28,.8);
+    }
+    button {
+      background:linear-gradient(135deg,#2563eb,#1e40af);
+      color:#fff;
+      border:none;
+      border-radius:12px;
+      padding:14px 24px;
+      font-weight:600;
+      font-size:14px;
+      cursor:pointer;
+      transition:all .2s;
+      box-shadow:0 4px 16px rgba(37,99,235,.3),inset 0 1px 0 rgba(255,255,255,.1);
+      position:relative;
+      overflow:hidden;
+      width:100%;
+    }
+    button:before {
+      content:'';
+      position:absolute;
+      top:0;left:0;right:0;bottom:0;
+      background:linear-gradient(135deg,rgba(255,255,255,.1),transparent);
+      opacity:0;
+      transition:opacity .2s;
+    }
+    button:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(37,99,235,.4),inset 0 1px 0 rgba(255,255,255,.15); }
+    button:hover:before { opacity:1; }
+    button:active { transform:translateY(0); }
+    button:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+    .error {
+      color:var(--danger);
+      font-size:13px;
+      text-align:center;
+      margin-top:16px;
+      padding:12px;
+      background:rgba(255,71,87,.1);
+      border:1px solid rgba(255,71,87,.2);
+      border-radius:8px;
+      display:none;
+    }
+    .success {
+      color:var(--ok);
+      font-size:13px;
+      text-align:center;
+      margin-top:16px;
+      padding:12px;
+      background:rgba(46,213,115,.1);
+      border:1px solid rgba(46,213,115,.2);
+      border-radius:8px;
+      display:none;
+    }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+    .login-container { animation:fadeIn .4s ease-out; }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <h1>Amazon Q API</h1>
+    <p class="subtitle">请输入密码以访问管理控制台</p>
+    
+    <form id="loginForm">
+      <div class="field">
+        <label for="password">密码</label>
+        <input type="password" id="password" name="password" required autocomplete="current-password" autofocus>
+      </div>
+      
+      <button type="submit" id="loginBtn">登录</button>
+    </form>
+    
+    <div id="error" class="error"></div>
+    <div id="success" class="success">登录成功，正在跳转...</div>
+  </div>
+
+  <script>
+    async function login(password) {
+      const errorEl = document.getElementById('error');
+      const successEl = document.getElementById('success');
+      const loginBtn = document.getElementById('loginBtn');
+      
+      try {
+        const response = await fetch('/api/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ password })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          // Set session cookie
+          document.cookie = `session=${data.token}; path=/; max-age=86400`; // 24 hours
+          
+          // Show success message
+          errorEl.style.display = 'none';
+          successEl.style.display = 'block';
+          loginBtn.disabled = true;
+          loginBtn.textContent = '登录成功';
+          
+          // Redirect after a short delay
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 1000);
+        } else {
+          // Show error
+          errorEl.textContent = data.error || '登录失败';
+          errorEl.style.display = 'block';
+          successEl.style.display = 'none';
+        }
+      } catch (e) {
+        errorEl.textContent = '网络错误，请稍后重试';
+        errorEl.style.display = 'block';
+        successEl.style.display = 'none';
+      }
+    }
+    
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const password = document.getElementById('password').value;
+      
+      if (!password) {
+        document.getElementById('error').textContent = '请输入密码';
+        document.getElementById('error').style.display = 'block';
+        return;
+      }
+      
+      await login(password);
+    });
+    
+    // Check if already logged in
+    window.addEventListener('load', () => {
+      const sessionMatch = document.cookie.match(/session=([^;]+)/);
+      if (sessionMatch) {
+        // Verify session is still valid
+        fetch('/', { method: 'HEAD' })
+          .then(response => {
+            if (response.ok) {
+              window.location.href = '/';
+            }
+          })
+          .catch(() => {
+            // Session invalid, stay on login page
+          });
+      }
+    });
+  </script>
+</body>
+</html>
